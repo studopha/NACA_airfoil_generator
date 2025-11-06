@@ -132,7 +132,7 @@ class NACA4:
 
 if __name__ == '__main__':
     name = 'NACA6412'
-
+    #name = 'NACA9412'
     airfoil = NACA4(name, 100)
 
     x_u, y_u = airfoil.calculate_upper_surface()
