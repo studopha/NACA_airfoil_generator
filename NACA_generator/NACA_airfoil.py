@@ -133,11 +133,11 @@ class NACA4:
 if __name__ == '__main__':
     name = 'NACA6412'
     #name = 'NACA9412'
-    airfoil = NACA4(name, 100)
+    airfoil = NACA4(name, 100, True)
 
     x_u, y_u = airfoil.calculate_upper_surface()
     x_l, y_l = airfoil.calculate_lower_surface()
-
+    z = np.zeros(len(x_u))
     plt.plot(x_l, y_l)
     plt.plot(x_u, y_u)
     plt.xlabel("x")
@@ -147,3 +147,14 @@ if __name__ == '__main__':
     plt.axis('equal')
 
     plt.show()
+    suc_pts = np.vstack((x_u, y_u, z)).T
+    pre_pts = np.vstack((x_l, y_l, z)).T
+
+
+    x_pts = np.append(x_u, x_l)
+    y_pts = np.append(y_u, y_l)
+
+    csv_pts = np.vstack((x_pts, y_pts))
+    np.savetxt('test.csv', csv_pts.T, delimiter = ';')
+    np.savetxt('suc_pts.csv', suc_pts, delimiter = ';')
+    np.savetxt('pres_pts.csv', pre_pts, delimiter= ';')
