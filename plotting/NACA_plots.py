@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from NACA_generator.NACA_airfoil import NACA4
+from NACA_generator.section import SectionNACA
+
 
 
 class NACA_plots:
@@ -19,7 +21,27 @@ class NACA_plots:
         plt.ylim(-0.5, 0.5)
         plt.show()
 
+def plot_section(profile: SectionNACA, name: str = ''):
+
+    # Suction side
+    plt.plot(profile.suction_side[0], profile.suction_side[1])
+
+    # Pressure side
+    plt.plot(profile.pressure_side[0], profile.pressure_side[1])
+
+    plt.title(name)
+    plt.grid(True)
+    plt.xlim( -0.1, 1.1)
+    plt.ylim(-0.5, 0.5)
+    plt.axis('equal')
+    plt.show()
+
+
 if __name__ == '__main__':
-    airfoil = NACA4('NACA6412', 100)
-    test_plot = NACA_plots(airfoil)
-    test_plot.plot_2D()
+    max_camber = 0.05
+    max_camber_pos = 0.4
+    max_thickness = 0.12
+    num_pts = 50
+    airfoil = SectionNACA(max_camber, max_camber_pos, max_thickness, num_pts, True)
+
+    plot_section(airfoil)

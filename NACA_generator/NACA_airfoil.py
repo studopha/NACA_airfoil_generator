@@ -19,6 +19,8 @@ class NACA4:
         self.max_camber_position = int(self.profile_name[5]) / 10
         self.max_thickness = int(self.profile_name[6:8]) / 100
 
+        print(f'{self.max_camber=}, {self.max_camber_position=}, {self.max_thickness=}')
+
     def _thickness_distribution(self, pts: np.array) -> np.array:
         """
         Function calculates the thickness distribution y_t of the given NACA-airfoil.
@@ -89,6 +91,8 @@ class NACA4:
             else:
                 gradient[i] = ((2 * m) / (1 - p)**2) * (p - point)
 
+        return gradient
+
     @staticmethod
     def _theta(pts: np.array) -> np.array:
         """
@@ -115,8 +119,8 @@ class NACA4:
         Function calculates (x, y) points for the suction side of the airfoil.
         """
 
-        x_u = self.pts - self._thickness_distribution(self.pts) * np.sin(self._theta(self.pts))
-        y_u = self._airfoil_envelope(self.pts) + self._thickness_distribution(self.pts) * np.cos(self._theta(self.pts))
+        x_u = self.pts - self._thickness_distribution(self.pts) * np.sin(self._theta(self._gradient(self.pts)))
+        y_u = self._airfoil_envelope(self.pts) + self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts)))
 
         return x_u, y_u
 
@@ -125,14 +129,14 @@ class NACA4:
         Function calculates (x, y) points for the pressure side of the airfoil.
         """
 
-        x_l = self.pts + self._thickness_distribution(self.pts) * np.sin(self._theta(self.pts))
-        y_l = self._airfoil_envelope(self.pts) - self._thickness_distribution(self.pts) * np.cos(self._theta(self.pts))
+        x_l = self.pts + self._thickness_distribution(self.pts) * np.sin(self._theta(self._gradient(self.pts)))
+        y_l = self._airfoil_envelope(self.pts) - self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts)))
 
         return x_l, y_l
 
 if __name__ == '__main__':
-    name = 'NACA6412'
-    #name = 'NACA9412'
+    #name = 'NACA6412'
+    name = 'NACA9412'
     airfoil = NACA4(name, 100, True)
 
     x_u, y_u = airfoil.calculate_upper_surface()
