@@ -133,6 +133,37 @@ class SectionNACA:
 
         return np.array([x_press, y_press])
 
+class Section3D(SectionNACA):
+    def __init__(
+            self,
+            max_camber: float,
+            max_camber_pos: float,
+            max_thickness: float,
+            num_pts: int,
+            z_pos: float,
+        generate_closed_trailing_edge: bool = True
+    ) -> None:
+        super().__init__(max_camber, max_camber_pos, max_thickness, num_pts, generate_closed_trailing_edge)
+        self.z_pos = z_pos
+
+
+    @property
+    def pressure_side3d(self) -> np.ndarray:
+
+        x_pts, y_pts = self.pressure_side
+        z_pts = np.full(len(x_pts), self.z_pos)
+
+        return np.array([x_pts, y_pts, z_pts])
+
+    @property
+    def suction_side3d(self) -> np.ndarray:
+
+        x_pts, y_pts = self.suction_side
+        z_pts = np.full(len(x_pts), self.z_pos)
+
+        return np.array([x_pts, y_pts, z_pts])
+
+
 if __name__ == '__main__':
 
     max_camber = 0.05
@@ -144,3 +175,7 @@ if __name__ == '__main__':
     suction = airfoil.suction_side
     pressure = airfoil.pressure_side
 
+    z_position = 2
+    blade3d = Section3D(max_camber, max_camber_pos, max_thickness, num_pts, z_position, True)
+
+    pressure3d = blade3d.pressure_side3d
