@@ -21,6 +21,3 @@ class Exporter:
             all_pts.T,
             delimiter=';',
         )
-
-
-

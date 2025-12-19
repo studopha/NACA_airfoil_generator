@@ -146,7 +146,6 @@ class Section3D(SectionNACA):
         super().__init__(max_camber, max_camber_pos, max_thickness, num_pts, generate_closed_trailing_edge)
         self.z_pos = z_pos
 
-
     @property
     def pressure_side3d(self) -> np.ndarray:
 

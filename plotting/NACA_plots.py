@@ -94,10 +94,6 @@ def plot_3d(blade: Blade3D, name: str = '', edges: bool = True) -> None:
     plt.ion()
 
 
-
-
-
-
 if __name__ == '__main__':
 
     num_pts = 50
