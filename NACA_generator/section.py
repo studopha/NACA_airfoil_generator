@@ -163,6 +163,21 @@ class Section3D(SectionNACA):
 
         return np.array([x_pts, y_pts, z_pts])
 
+    @property
+    def trailing_edge(self) -> Tuple[float, float, float]:
+        x = self.suction_side[0, -1]
+        y = self.suction_side[1, -1]
+        z = self.z_pos
+
+        return x, y, z
+
+    @property
+    def leading_edge(self) -> Tuple[float, float, float]:
+        x = self.suction_side[0, 0]
+        y = self.suction_side[1, 0]
+        z = self.z_pos
+
+        return x, y,z
 
 if __name__ == '__main__':
 
@@ -178,4 +193,6 @@ if __name__ == '__main__':
     z_position = 2
     blade3d = Section3D(max_camber, max_camber_pos, max_thickness, num_pts, z_position, True)
 
+    blade3d.trailing_edge
+    blade3d.leading_edge
     pressure3d = blade3d.pressure_side3d

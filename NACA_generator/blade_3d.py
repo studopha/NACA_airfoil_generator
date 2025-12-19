@@ -3,7 +3,7 @@
 
 import numpy as np
 from NACA_generator.section import SectionNACA, Section3D
-from plotting.NACA_plots import plot_section, plot_3d
+
 from typing import List, Tuple
 
 
@@ -32,7 +32,7 @@ class Blade3D:
         self.sections_amount = sections_amount
         self.pts_per_section = pts_per_section
 
-        self.sections = None
+        self.sections: List[Section3D] = []
         self._create_sections()
 
     def _create_sections(self) -> None:
@@ -72,6 +72,30 @@ class Blade3D:
 
         self.sections = sections_list
 
+    @property
+    def leading_edge(self) -> np.ndarray:
+        leading_edge = []
+        for section in self.sections:
+            x, y, z = section.leading_edge
+
+            leading_edge.append([x, y, z])
+
+        pts = np.array(leading_edge)
+
+        return pts.T
+
+    @property
+    def trailing_edge(self) -> np.ndarray:
+        trailing_edge = []
+        for section in self.sections:
+            x, y, z = section.trailing_edge
+
+            trailing_edge.append([x, y, z])
+
+        pts = np.array(trailing_edge)
+
+        return pts.T
+
 
 if __name__ == '__main__':
 
@@ -96,10 +120,6 @@ if __name__ == '__main__':
         name = f'section {i}'
         plot_section(section, name)
 
-
-    # Plot 3d:
-
-    plot_3d(profile_3d.sections)
 
 
 
