@@ -118,8 +118,7 @@ if __name__ == '__main__':
 
     for i, section in enumerate(profile_3d.sections):
         name = f'section {i}'
-        plot_section(section, name)
-
+        #plot_section(section, name)
 
 
 
