@@ -9,6 +9,14 @@ and three-dimensional representations.
 :date: 2025-12-20
 """
 
+# TODO 1. create figure
+# TODO 2. Add plots
+# TODO 3. 2d 3d case
+# TODO 4. change plot parameters
+# TODO 5. Add Title etc.
+
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,6 +27,25 @@ class Plotter:
     """
     class to handle the plots of the sections.
     """
+    def __init__(self):
+        self.fig, self.ax = plt.subplots()
+
+
+    def add_2d_plot(self, section: Section2D) -> None:
+
+        # Suction side
+        self.ax.scatter(section.suction_side[:, 0], section.suction_side[:, 1])
+
+        # Pressure Side
+        self.ax.scatter(section.pressure_side[:, 0], section.pressure_side[:, 1])
+
+    def configure_axis(self, title):
+        self.ax.title(title)
+        self.ax.grid(True)
+        # plt.xlim(x_lim)
+        # plt.ylim(y_lim)
+        self.ax.axis('equal')  # Look for the axis because now xlim ylim is useless
+        plt.show()
 
     def plot2D(self, section: Section2D, title: str = 'NACA blade') -> None:
         """
@@ -50,14 +77,17 @@ class Plotter:
         plt.grid(True)
         #plt.xlim(x_lim)
         #plt.ylim(y_lim)
-        plt.axis('equal')
+        plt.axis('equal')  # Look for the axis because now xlim ylim is useless
         plt.show()
 
     def plot3D(self, section: Section3D) -> None:
         """
         Function plots a three-dimnesional section as a points cloud.
         """
-        pass
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+
+        # Pressure side
 
     def plot_blade(self, blade: BladeGenerator) -> None:
 
@@ -71,5 +101,15 @@ if __name__ == '__main__':
 
     plotter = Plotter()
 
-    plotter.plot2D(profile)
+    #plotter.plot2D(profile)
+
+    plotter.add_2d_plot(profile)
+
+    name = 'NACA5212'
+    max_camb, max_camb_pos, max_thic = extract_values_from_NACA(name)
+    profile = Section2D(max_camb, max_camb_pos, max_thic, 20)
+
+    plotter.add_2d_plot(profile)
+
+    plotter.test(title='Test')
 
