@@ -7,8 +7,6 @@ from NACA_generator.section import SectionNACA, Section3D
 from typing import List, Tuple
 
 
-
-
 def extract_from_name(profile_name: str) -> Tuple[float, float, float]:
     max_camber = int(profile_name[4]) / 100
     max_camber_position = int(profile_name[5]) / 10
@@ -118,8 +116,7 @@ if __name__ == '__main__':
 
     for i, section in enumerate(profile_3d.sections):
         name = f'section {i}'
-        plot_section(section, name)
-
+        #plot_section(section, name)
 
 
 
