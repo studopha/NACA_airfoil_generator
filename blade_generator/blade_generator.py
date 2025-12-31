@@ -20,13 +20,12 @@ class BladeGenerator:
             self,
             start_profile: section_generator.Section3D,
             end_profile: section_generator.Section3D,
-            blade_length: float,
             sections_amount: int,
             pts_per_section: int
     ):
         self.start_profile = start_profile
         self.end_profile = end_profile
-        self.blade_length = blade_length
+        self.blade_length = self._calc_length()
         self.sections_amount = sections_amount
         self.pts_per_section = pts_per_section
 
@@ -35,6 +34,13 @@ class BladeGenerator:
 
         self.leading_edge = self._create_LE()
         self.trailing_edge = self._create_TE()
+
+
+    def _calc_length(self) -> float:
+        start_z = self.start_profile.z_pos
+        end_z = self.end_profile.z_pos
+
+        return end_z - start_z
 
     def _create_sections(self) -> None:
         """
@@ -56,10 +62,17 @@ class BladeGenerator:
             self.sections_amount
         )
         z_position = np.linspace(
-            0,
-            self.blade_length,
+            self.start_profile.z_pos,
+            self.end_profile.z_pos,
             self.sections_amount
         )
+        chord = np.linspace(
+            self.start_profile.chord_len,
+            self.end_profile.chord_len,
+            self.sections_amount
+        )
+        print(chord)
+        print(z_position)
 
         for i in range(len(max_camber)):
             self.sections.append(
@@ -67,6 +80,7 @@ class BladeGenerator:
                     max_camber[i],
                     max_camber_pos[i],
                     max_thickness[i],
+                    chord[i],
                     self.pts_per_section,
                     z_position[i]
                 )
@@ -97,30 +111,3 @@ class BladeGenerator:
             trailing_edge.append(section.trailing_edge)
 
         return np.array(trailing_edge)
-
-if __name__ == '__main__':
-
-    num_pts = 50
-    # Start profile
-    profile_name = 'NACA1112'
-    max_camber, max_camber_pos, max_thickness = section_generator.extract_values_from_NACA(profile_name)
-    profile_start = section_generator.Section3D(max_camber, max_camber_pos, max_thickness, num_pts, True)
-
-    # End profile
-    profile_name = 'NACA9512'
-    max_camber, max_camber_pos, max_thickness = section_generator.extract_values_from_NACA(profile_name)
-    profile_end = section_generator.Section3D(max_camber, max_camber_pos, max_thickness, num_pts, True)
-
-    sections = 6
-
-    length = 2
-    profile_3d = BladeGenerator(profile_start, profile_end, length, sections, num_pts)
-
-
-    print(profile_3d.leading_edge)
-    print(profile_3d.trailing_edge)
-
-    print(profile_3d.leading_edge.shape)
-    print(profile_3d.trailing_edge.shape)
-
-

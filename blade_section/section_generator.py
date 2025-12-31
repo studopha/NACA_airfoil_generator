@@ -13,7 +13,8 @@ in two-dimensional and three-dimensional representations.
 # TODO TE LE not as property
 # TODO 3d TE LE with super()
 # TODO Twist
-# TODO Scaling
+# TODO Scaling scaling applied as a fnc not on init ... self.suction_side = apply_scaling(self.suction_side)
+# TODO keep unchanged norm and extra changend form
 
 
 import numpy as np
@@ -52,15 +53,26 @@ class Section2D:
             max_camber: float,
             max_camber_pos: float,
             max_thickness: float,
+            chord_len: float,
             num_pts: int,
     ):
         self.max_camber = max_camber
         self.max_camber_pos = max_camber_pos
         self.max_thickness = max_thickness
+        self.chord_len = chord_len
         self.num_pts = num_pts
+        self.suction_side = None
+        self.pressure_side = None
+        self.leading_edge = None
+        self.trailing_edge = None
 
         self._check_inputs()
         self._cosine_spacing()
+        self._suction_side()
+        self._pressure_side()
+        self._chord()
+        self._leading_edge()
+        self._trailing_edge()
 
     def _check_inputs(self) -> None:
         """
@@ -154,8 +166,7 @@ class Section2D:
 
         self.pts = (1 - np.cos(beta)) / 2
 
-    @property
-    def suction_side(self) -> np.ndarray:
+    def _suction_side(self) -> None:
         """
         Function calculates (x, y) points for the suction side of the blade.
 
@@ -167,10 +178,9 @@ class Section2D:
         y = (self._airfoil_envelope(self.pts) +
                  self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
 
-        return np.column_stack((x, y))
+        self.suction_side = np.column_stack((x, y))
 
-    @property
-    def pressure_side(self) -> np.ndarray:
+    def _pressure_side(self) -> None:
         """
         Function calculates (x, y) points for the pressure side of the blade.
         """
@@ -179,10 +189,9 @@ class Section2D:
         y = (self._airfoil_envelope(self.pts) -
                    self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
 
-        return np.column_stack((x, y))
+        self.pressure_side = np.column_stack((x, y))
 
-    @property
-    def leading_edge(self) -> np.ndarray:
+    def _leading_edge(self) -> None:
         """
         Function calculates the leading edge of the given 2D section and return it.
 
@@ -192,10 +201,9 @@ class Section2D:
         x = self.suction_side[0, 0]
         y = self.suction_side[0, 1]
 
-        return np.array([x, y])
+        self.leading_edge = np.array([x, y])
 
-    @property
-    def trailing_edge(self) -> np.ndarray:
+    def _trailing_edge(self) -> None:
         """
         Function calculates the trailing edge of the given 2D section and return it.
 
@@ -205,7 +213,13 @@ class Section2D:
         x = self.suction_side[-1, 0]
         y = self.suction_side[-1, 1]
 
-        return np.array([x, y])
+        self.trailing_edge = np.array([x, y])
+
+    def _chord(self) -> None:
+
+        self.suction_side *= self.chord_len
+        self.pressure_side *= self.chord_len
+
 
 class Section3D(Section2D):
     """Generator class for the NACA profile section in 3D with the given values."""
@@ -215,14 +229,15 @@ class Section3D(Section2D):
             max_camber: float,
             max_camber_pos: float,
             max_thickness: float,
+            chord_len: float,
             num_pts: int,
             z_pos: float,
     ):
-        super().__init__(max_camber, max_camber_pos, max_thickness, num_pts)
         self.z_pos = z_pos
+        super().__init__(max_camber, max_camber_pos, max_thickness, chord_len, num_pts)
 
-    @property
-    def pressure_side(self) -> np.ndarray:
+
+    def _pressure_side(self) -> None:
         """
         Function calculates (x, y, z) points for the pressure side of the blade.
 
@@ -235,10 +250,9 @@ class Section3D(Section2D):
              self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
         z = np.full(len(x), self.z_pos)
 
-        return np.column_stack((x, y, z))
+        self.pressure_side = np.column_stack((x, y, z))
 
-    @property
-    def suction_side(self) -> np.ndarray:
+    def _suction_side(self) -> None:
         """
         Function calculates (x, y, z) points for the suction side of the blade.
 
@@ -251,11 +265,10 @@ class Section3D(Section2D):
              self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
         z = np.full(len(x), self.z_pos)
 
+        self.suction_side = np.column_stack((x, y, z))
 
-        return np.column_stack((x, y, z))
 
-    @property
-    def leading_edge(self) -> np.ndarray:
+    def _leading_edge(self) -> None:
         """
         Function calculates the leading edge of the given 2D section and return it.
 
@@ -265,10 +278,9 @@ class Section3D(Section2D):
         x = self.suction_side[0, 0]
         y = self.suction_side[0, 1]
 
-        return np.array([x, y, self.z_pos])
+        self.leading_edge = np.array([x, y, self.z_pos])
 
-    @property
-    def trailing_edge(self) -> np.ndarray:
+    def _trailing_edge(self) -> None:
         """
         Function calculates the trailing edge of the given 2D section and return it.
 
@@ -278,4 +290,9 @@ class Section3D(Section2D):
         x = self.suction_side[-1, 0]
         y = self.suction_side[-1, 1]
 
-        return np.array([x, y, self.z_pos])
+        self.trailing_edge = np.array([x, y, self.z_pos])
+
+    def _chord(self) -> None:
+
+        self.suction_side[:, :2] *= self.chord_len
+        self.pressure_side[:, :2] *= self.chord_len
