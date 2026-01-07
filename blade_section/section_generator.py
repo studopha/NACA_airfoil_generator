@@ -16,9 +16,26 @@ in two-dimensional and three-dimensional representations.
 # TODO Scaling scaling applied as a fnc not on init ... self.suction_side = apply_scaling(self.suction_side)
 # TODO keep unchanged norm and extra changend form
 
+# future structure:
+
+# 1. init
+# 2. calc norm blades
+# 3. NORM: SS PS ; LE TE ; CAMBER
+# 4. MODEL: SS PS; LE TE ; CAMBER
+# 5. SCALE
+# 6. TWIST
+
+
+
+
+
+
 
 import numpy as np
 from typing import Tuple
+
+from matplotlib.cbook import pts_to_midstep, pts_to_prestep
+
 
 def extract_values_from_NACA(NACA_profile_name: str) -> Tuple[float, float, float]:
     """
@@ -61,18 +78,28 @@ class Section2D:
         self.max_thickness = max_thickness
         self.chord_len = chord_len
         self.num_pts = num_pts
+        self.angle = 0
+
+        # unchanged norm model
+        self.norm_suction_side = None
+        self.norm_pressure_side = None
+        self.norm_leading_edge = None
+        self.norm_trailing_edge = None
+        self.norm_camber_line = None
+
+        # model to be scaled rotated etc.
         self.suction_side = None
         self.pressure_side = None
-        self.leading_edge = None
-        self.trailing_edge = None
 
         self._check_inputs()
         self._cosine_spacing()
-        self._suction_side()
-        self._pressure_side()
-        self._chord()
-        self._leading_edge()
-        self._trailing_edge()
+        self._calc_norm_suction_side()
+        self._calc_norm_pressure_side()
+        self._calc_norm_leading_edge()
+        self._calc_norm_trailing_edge()
+        self._calc_norm_camber_line()
+
+        self._create_changeable_section()
 
     def _check_inputs(self) -> None:
         """
@@ -115,8 +142,13 @@ class Section2D:
         Returns:
             (np.ndarray) an array with the airfoil envelope y_c
         """
+
         m = self.max_camber
         p = self.max_camber_pos
+
+        if m == 0:
+            return np.zeros_like(pts)
+
         envelope = np.where(
             pts < p,
             (m / p ** 2) * (2 * p * pts - pts ** 2),
@@ -137,6 +169,10 @@ class Section2D:
         """
         m = self.max_camber
         p = self.max_camber_pos
+
+        if m == 0:
+            return np.zeros_like(pts)
+
         gradient = np.where(
             pts < p,
             ((2 * m) / (p ** 2)) * (p - pts),
@@ -166,7 +202,7 @@ class Section2D:
 
         self.pts = (1 - np.cos(beta)) / 2
 
-    def _suction_side(self) -> None:
+    def _calc_norm_suction_side(self) -> None:
         """
         Function calculates (x, y) points for the suction side of the blade.
 
@@ -178,9 +214,9 @@ class Section2D:
         y = (self._airfoil_envelope(self.pts) +
                  self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
 
-        self.suction_side = np.column_stack((x, y))
+        self.norm_suction_side = np.column_stack((x, y))
 
-    def _pressure_side(self) -> None:
+    def _calc_norm_pressure_side(self) -> None:
         """
         Function calculates (x, y) points for the pressure side of the blade.
         """
@@ -189,37 +225,83 @@ class Section2D:
         y = (self._airfoil_envelope(self.pts) -
                    self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
 
-        self.pressure_side = np.column_stack((x, y))
+        self.norm_pressure_side = np.column_stack((x, y))
 
-    def _leading_edge(self) -> None:
+    def _calc_norm_leading_edge(self) -> None:
         """
         Function calculates the leading edge of the given 2D section and return it.
 
         Returns:
             (np.ndarray) the point (x, y) of the leading edge in the profile.
         """
-        x = self.suction_side[0, 0]
-        y = self.suction_side[0, 1]
+        x = self.norm_suction_side[0, 0]
+        y = self.norm_suction_side[0, 1]
 
-        self.leading_edge = np.array([x, y])
+        self.norm_leading_edge = np.array([x, y])
 
-    def _trailing_edge(self) -> None:
+    def _calc_norm_trailing_edge(self) -> None:
         """
         Function calculates the trailing edge of the given 2D section and return it.
 
         Returns:
             (np.ndarray) the point (x, y) of the trailing edge in the profile.
         """
+        x = self.norm_suction_side[-1, 0]
+        y = self.norm_suction_side[-1, 1]
+
+        self.norm_trailing_edge = np.array([x, y])
+
+    def _calc_norm_camber_line(self) -> None:
+        camber_line = self._airfoil_envelope(self.pts)
+
+        self.norm_camber_line =  np.column_stack((self.pts, camber_line))
+
+    def _create_changeable_section(self) -> None:
+        self.suction_side = self.norm_suction_side.copy()
+        self.pressure_side = self.norm_pressure_side.copy()
+        self.camber_line = self.norm_camber_line.copy()
+
+    def scale_section(self, factor: float) -> None:
+        self.suction_side *= factor
+        self.pressure_side *= factor
+        self.camber_line *= factor
+
+    def rotate_section(self, angle: float, reference_point: np.ndarray) -> None:
+        self.angle = angle
+        angle_rad = np.radians(angle)
+        # Shift points to reference
+        pts_suc = self.suction_side - reference_point
+        pts_pres = self.pressure_side - reference_point
+        pts_camb = self.camber_line - reference_point
+
+        # Rotation matrix
+        c, s = np.cos(angle_rad), np.sin(angle_rad)
+        R = np.array([[c, -s],
+                      [s, c]])
+
+        # Rotate points
+        rot_suc = pts_suc @ R.T
+        rot_pres = pts_pres @ R.T
+        rot_camb = pts_camb @ R.T
+
+        # Shift back
+        self.suction_side = rot_suc + reference_point
+        self.pressure_side = rot_pres + reference_point
+        self.camber_line = rot_camb + reference_point
+
+    @property
+    def leading_edge(self) -> np.ndarray:
+        x = self.suction_side[0, 0]
+        y = self.suction_side[0, 1]
+
+        return np.array([x, y])
+
+    @property
+    def trailing_edge(self) -> np.ndarray:
         x = self.suction_side[-1, 0]
         y = self.suction_side[-1, 1]
 
-        self.trailing_edge = np.array([x, y])
-
-    def _chord(self) -> None:
-
-        self.suction_side *= self.chord_len
-        self.pressure_side *= self.chord_len
-
+        return np.array([x, y])
 
 class Section3D(Section2D):
     """Generator class for the NACA profile section in 3D with the given values."""
@@ -234,10 +316,10 @@ class Section3D(Section2D):
             z_pos: float,
     ):
         self.z_pos = z_pos
+        self.angle = 0
         super().__init__(max_camber, max_camber_pos, max_thickness, chord_len, num_pts)
 
-
-    def _pressure_side(self) -> None:
+    def _calc_norm_pressure_side(self) -> None:
         """
         Function calculates (x, y, z) points for the pressure side of the blade.
 
@@ -250,9 +332,9 @@ class Section3D(Section2D):
              self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
         z = np.full(len(x), self.z_pos)
 
-        self.pressure_side = np.column_stack((x, y, z))
+        self.norm_pressure_side = np.column_stack((x, y, z))
 
-    def _suction_side(self) -> None:
+    def _calc_norm_suction_side(self) -> None:
         """
         Function calculates (x, y, z) points for the suction side of the blade.
 
@@ -265,34 +347,96 @@ class Section3D(Section2D):
              self._thickness_distribution(self.pts) * np.cos(self._theta(self._gradient(self.pts))))
         z = np.full(len(x), self.z_pos)
 
-        self.suction_side = np.column_stack((x, y, z))
+        self.norm_suction_side = np.column_stack((x, y, z))
 
 
-    def _leading_edge(self) -> None:
+    def _calc_norm_leading_edge(self) -> None:
         """
         Function calculates the leading edge of the given 2D section and return it.
 
         Returns:
             (np.ndarray) the point (x, y) of the leading edge in the profile.
         """
-        x = self.suction_side[0, 0]
-        y = self.suction_side[0, 1]
+        x = self.norm_suction_side[0, 0]
+        y = self.norm_suction_side[0, 1]
 
-        self.leading_edge = np.array([x, y, self.z_pos])
+        self.norm_leading_edge = np.array([x, y, self.z_pos])
 
-    def _trailing_edge(self) -> None:
+    def _calc_norm_trailing_edge(self) -> None:
         """
         Function calculates the trailing edge of the given 2D section and return it.
 
         Returns:
             (np.ndarray) the point (x, y) of the trailing edge in the profile.
         """
+        x = self.norm_suction_side[-1, 0]
+        y = self.norm_suction_side[-1, 1]
+
+        self.norm_trailing_edge = np.array([x, y, self.z_pos])
+
+    def _calc_norm_camber_line(self) -> None:
+        camber_line = self._airfoil_envelope(self.pts)
+        z = np.full(len(self.pts), self.z_pos)
+
+        self.norm_camber_line = np.column_stack((self.pts, camber_line, z))
+
+    @property
+    def leading_edge(self) -> np.ndarray:
+        x = self.suction_side[0, 0]
+        y = self.suction_side[0, 1]
+
+        return np.array([x, y, self.z_pos])
+
+    @property
+    def trailing_edge(self) -> np.ndarray:
         x = self.suction_side[-1, 0]
         y = self.suction_side[-1, 1]
 
-        self.trailing_edge = np.array([x, y, self.z_pos])
+        return np.array([x, y, self.z_pos])
 
-    def _chord(self) -> None:
+    def scale_section(self, factor: float) -> None:
+        self.suction_side[:, :2] *= factor
+        self.pressure_side[:, :2] *= factor
+        self.camber_line[:, :2] *= factor
 
-        self.suction_side[:, :2] *= self.chord_len
-        self.pressure_side[:, :2] *= self.chord_len
+    def rotate_section(self, angle: float, reference_point: np.ndarray) -> None:
+        self.angle = angle
+
+        angle_rad = np.radians(angle)
+        # Shift points to reference
+        pts_suc = self.suction_side - reference_point
+        pts_pres = self.pressure_side - reference_point
+        pts_camb = self.camber_line - reference_point
+
+        # Rotation matrix
+        c, s = np.cos(angle_rad), np.sin(angle_rad)
+        R = np.array([[c, -s, 0],
+                      [s, c, 0],
+                      [0, 0, 0]])
+
+        # Rotate points
+        rot_suc = pts_suc @ R.T
+        rot_pres = pts_pres @ R.T
+        rot_camb = pts_camb @ R.T
+
+        # Shift back
+        self.suction_side = rot_suc + reference_point
+        self.pressure_side = rot_pres + reference_point
+        self.camber_line = rot_camb + reference_point
+
+
+
+if __name__ == '__main__':
+    name_start = 'NACA9512'
+    z = 2
+    chord = 1
+    pts = 25
+    max_camb, max_camb_pos, max_thic = extract_values_from_NACA(name_start)
+    start_profile = Section2D(max_camb, max_camb_pos, max_thic, chord, pts)
+
+
+    x = 0.5
+    y = 0.1
+    ref = np.array([x, y])
+    start_profile.rotate_section(45, ref)
+

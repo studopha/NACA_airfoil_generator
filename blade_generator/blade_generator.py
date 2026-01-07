@@ -32,8 +32,8 @@ class BladeGenerator:
         self.sections: List[section_generator.Section3D] = []
         self._create_sections()
 
-        self.leading_edge = self._create_LE()
-        self.trailing_edge = self._create_TE()
+        self.norm_leading_edge = self._create_norm_LE()
+        self.norm_trailing_edge = self._create_norm_TE()
 
 
     def _calc_length(self) -> float:
@@ -71,8 +71,11 @@ class BladeGenerator:
             self.end_profile.chord_len,
             self.sections_amount
         )
-        print(chord)
-        print(z_position)
+        angle = np.linspace(
+            self.start_profile.angle,
+            self.end_profile.angle,
+            self.sections_amount
+        )
 
         for i in range(len(max_camber)):
             self.sections.append(
@@ -86,7 +89,14 @@ class BladeGenerator:
                 )
             )
 
-    def _create_LE(self) -> np.ndarray:
+        for i, section in enumerate(self.sections):
+            if angle[i] != 0:
+                print('hund')
+                ref = np.array([0.5, 0.1, section.z_pos])
+                section.rotate_section(angle[i], ref)
+
+
+    def _create_norm_LE(self) -> np.ndarray:
         """
         Function creates the curve for the leading edge of the blade geometry.
 
@@ -95,11 +105,11 @@ class BladeGenerator:
         """
         leading_edge = []
         for section in self.sections:
-            leading_edge.append(section.leading_edge)
+            leading_edge.append(section.norm_leading_edge)
 
         return np.array(leading_edge)
 
-    def _create_TE(self) -> np.ndarray:
+    def _create_norm_TE(self) -> np.ndarray:
         """
         Function creates the curve for the trailing edge of the blade geometry.
 
@@ -108,6 +118,33 @@ class BladeGenerator:
         """
         trailing_edge = []
         for section in self.sections:
+            trailing_edge.append(section.norm_trailing_edge)
+
+        return np.array(trailing_edge)
+
+    @property
+    def leading_edge(self) -> np.ndarray:
+        leading_edge = []
+        for section in self.sections:
+            leading_edge.append(section.leading_edge)
+
+        return np.array(leading_edge)
+
+    @property
+    def trailing_edge(self) -> np.ndarray:
+        trailing_edge = []
+        for section in self.sections:
             trailing_edge.append(section.trailing_edge)
 
         return np.array(trailing_edge)
+
+    def scale_blade(self, start_factor: float, end_factor: float) -> None:
+
+        factor = np.linspace(
+            start_factor,
+            end_factor,
+            self.sections_amount
+        )
+
+        for i, section in enumerate(self.sections):
+            section.scale_section(factor[i])
