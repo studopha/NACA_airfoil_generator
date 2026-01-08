@@ -15,6 +15,7 @@ from typing import List
 import blade_section.section_generator as section_generator
 
 
+
 class BladeGenerator:
     def __init__(
             self,
@@ -34,7 +35,6 @@ class BladeGenerator:
 
         self.norm_leading_edge = self._create_norm_LE()
         self.norm_trailing_edge = self._create_norm_TE()
-
 
     def _calc_length(self) -> float:
         start_z = self.start_profile.z_pos
@@ -71,11 +71,6 @@ class BladeGenerator:
             self.end_profile.chord_len,
             self.sections_amount
         )
-        angle = np.linspace(
-            self.start_profile.angle,
-            self.end_profile.angle,
-            self.sections_amount
-        )
 
         for i in range(len(max_camber)):
             self.sections.append(
@@ -88,13 +83,6 @@ class BladeGenerator:
                     z_position[i]
                 )
             )
-
-        for i, section in enumerate(self.sections):
-            if angle[i] != 0:
-                print('hund')
-                ref = np.array([0.5, 0.1, section.z_pos])
-                section.rotate_section(angle[i], ref)
-
 
     def _create_norm_LE(self) -> np.ndarray:
         """
@@ -148,3 +136,61 @@ class BladeGenerator:
 
         for i, section in enumerate(self.sections):
             section.scale_section(factor[i])
+
+    def rotate_blade(self, start_angle: float, end_angle: float, reference_point: np.ndarray) -> None:
+        x, y = reference_point
+
+        angle = np.linspace(
+            start_angle,
+            end_angle,
+            self.sections_amount
+        )
+
+        for i, section in enumerate(self.sections):
+            ref = np.array([x, y, section.z_pos])
+            section.rotate_section(angle[i], ref)
+
+
+    def alignment(self, method: str = 'center', rising: bool = True) -> None:
+
+        match method:
+            case 'center':
+                def center_section(sec: section_generator.Section3D) -> np.ndarray:
+                    return sec.leading_edge[:2] + sec.trailing_edge[:2] / 2
+
+                if rising:
+                    reference = center_section(self.sections[0])
+                else:
+                    reference = center_section(self.sections[-1])
+
+                for section in self.sections:
+                    center = center_section(section)
+                    dif = reference - center
+
+                    dif_3d = np.array([dif[0], dif[1], 0])
+                    section.move_section(dif_3d)
+
+            case 'leading':
+                if rising:
+                    reference = self.sections[0].leading_edge
+                else:
+                    reference = self.sections[-1].leading_edge
+
+                for section in self.sections:
+                    dif = reference[:2] - section.leading_edge[:2]
+                    dif_3d = np.array([dif[0], dif[1], 0])
+                    section.move_section(dif_3d)
+
+            case 'trailing':
+                if rising:
+                    reference = self.sections[-1].trailing_edge
+                else:
+                    reference = self.sections[0].trailing_edge
+
+                for section in self.sections:
+                    dif = reference[:2] - section.trailing_edge[:2]
+                    dif_3d = np.array([dif[0], dif[1], 0])
+                    section.move_section(dif_3d)
+
+            case _:
+                raise ValueError(f'ERROR: invalid alignment method ({method}). Choose "center", "leading" or "trailing" instead.')

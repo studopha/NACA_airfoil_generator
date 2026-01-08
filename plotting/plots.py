@@ -114,26 +114,28 @@ class Plotter:
 
 if __name__ == '__main__':
     pts = 25
-    length = 5
+    length = 10
     sections = 6
+    ref = np.array([0.5, 0.1])  # implement it not hardcode
 
     plot_blade = True
     if plot_blade:
-        name_start = 'NACA9512'
+        name_start = 'NACA9412'
         chord = 5
         max_camb, max_camb_pos, max_thic = extract_values_from_NACA(name_start)
+        max_camb = 0.2
         start_profile = Section3D(max_camb, max_camb_pos, max_thic, chord, pts, 0)
-        start_profile.rotate_section(45, np.array([0, 0, 0]))
-
 
         name_end = 'NACA9512'
         chord = 1
         max_camb, max_camb_pos, max_thic = extract_values_from_NACA(name_end)
         end_profile = Section3D(max_camb, max_camb_pos, max_thic, chord, pts, length)
-        end_profile.rotate_section(0, np.array([0, 0, 0]))
 
         blade = BladeGenerator(start_profile, end_profile, sections, pts)
-        blade.scale_blade(1, 2)
+        blade.scale_blade(3, 1)
+        blade.rotate_blade(0, 45, ref)
+        blade.alignment(method='center')
+
 
         plotter = Plotter(dimensions=3)
         #plotter.add_blade_plot(blade, True)

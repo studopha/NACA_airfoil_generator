@@ -289,6 +289,12 @@ class Section2D:
         self.pressure_side = rot_pres + reference_point
         self.camber_line = rot_camb + reference_point
 
+    def move_section(self, offset: np.ndarray) -> None:
+
+        self.suction_side += offset
+        self.pressure_side += offset
+        self.camber_line += offset
+
     @property
     def leading_edge(self) -> np.ndarray:
         x = self.suction_side[0, 0]
@@ -423,20 +429,3 @@ class Section3D(Section2D):
         self.suction_side = rot_suc + reference_point
         self.pressure_side = rot_pres + reference_point
         self.camber_line = rot_camb + reference_point
-
-
-
-if __name__ == '__main__':
-    name_start = 'NACA9512'
-    z = 2
-    chord = 1
-    pts = 25
-    max_camb, max_camb_pos, max_thic = extract_values_from_NACA(name_start)
-    start_profile = Section2D(max_camb, max_camb_pos, max_thic, chord, pts)
-
-
-    x = 0.5
-    y = 0.1
-    ref = np.array([x, y])
-    start_profile.rotate_section(45, ref)
-
