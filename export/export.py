@@ -14,7 +14,7 @@ class Exporter:
         pts_suc = section.suction_side3d
         pts_pres = section.pressure_side3d
 
-        all_pts = np.hstack((pts_suc, pts_pres[:, ::-1]))
+        all_pts = np.hstack((pts_suc, pts_pres[::-1]))
 
         np.savetxt(
             fr'{file_name}',

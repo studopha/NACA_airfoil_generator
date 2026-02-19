@@ -85,7 +85,7 @@ class Plotter:
 
             # Camber line
             camber_line = section.camber_line
-            self.ax.plot(camber_line[:, 0], camber_line[:, 1], camber_line[:, 2])
+            #self.ax.plot(camber_line[:, 0], camber_line[:, 1], camber_line[:, 2])
 
     def configure_3d_axis(self, title) -> None:
 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
 
         blade = BladeGenerator(start_profile, end_profile, sections, pts)
         blade.scale_blade(3, 1)
-        blade.rotate_blade(0, 45, ref)
+        blade.rotate_blade(0, -45, ref)
         blade.alignment(method='center')
 
 
